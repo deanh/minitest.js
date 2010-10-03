@@ -33,8 +33,10 @@ var MiniTest = (function (opts) {
             assert: function (test, msg) {
                 msg = msg || "Failed assertion, no message given";
                 assertion_cnt += 1;
-                if (typeof test === 'boolean') {
-                    test = function () { return test };
+
+                if (typeof test !== 'function') {
+                    var old_test_val = test;
+                    test = function () { return old_test_val };
                 }
 
                 if (!test()) {
@@ -47,26 +49,34 @@ var MiniTest = (function (opts) {
             },
             
             assert_empty: function (obj, msg) {
+                var my_props = []
+                var prop;
                 msg = message(msg, function() { 
                     return "Expected " + obj + " to be empty"
                 });
-                return this.assert(obj.length === 0, msg);
+
+                for (prop in obj) {
+                    if (obj.hasOwnProperty(prop)) my_props.push(prop);
+                }
+                return this.assert(my_props.length === 0, msg);
             },
 
             assert_equal: function (exp, act, msg) {
                 msg = message(msg, function() {
                     return "Expected " + exp + " not " + act;
                 });
-                return this.assert(exp === act, msg);
+                return this.assert(exp == act, msg);
             },
 
             assert_in_delta: function (exp, act, delta, msg) {
                 delta = delta || 0.001;
+                console.log(delta);
                 msg = message(msg, function() {
                     return "Expected " + exp + " - " + act + 
                            " (" + n + ") " + "to be < " + delta;
                 });
                 var n  = Math.abs(exp - act);
+                console.log(n);
                 return this.assert(delta >= n, msg);
             },
 
@@ -76,15 +86,18 @@ var MiniTest = (function (opts) {
             },
 
             assert_includes: function (collection, obj, msg) {
-                var thing;
+                var thing, elm;
                 msg = message(msg, function () {
                     return "Expected " + collection + " to include " + obj;
                 });
-                // this.assert_respond_to(collection, "slice");                
-                for (var elm in collection) {
-                    if (elm === obj) thing = elm;
+                this.assert_respond_to(collection, 'pop');                
+                while (elm = collection.pop()) {
+                    if (elm === obj) {
+                        thing = elm;
+                        break;
+                    }
                 }
-                return this.assert(elm, msg);
+                return this.assert(thing, msg);
             },
 
             // This could be an evil/wrong way to implement this, I'm
@@ -93,7 +106,7 @@ var MiniTest = (function (opts) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be an instance of " + cls;
                 });
-                return this.assert(cls === obj.__proto__, msg);
+                return this.assert(cls.prototype === obj.__proto__, msg);
             },
 
             assert_match: function (exp, act, msg) {
@@ -148,6 +161,13 @@ var MiniTest = (function (opts) {
 
             assert_throws: function (exp, code, msg) {
                 return this.assert_raises(exp, code, msg);
+            },
+
+            assert_undefined: function (obj, msg) {
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to be undefined";
+                });
+                return this.assert(obj === undefined, msg);
             },
 
             flunk: function (msg) {
