@@ -1,5 +1,5 @@
 var MiniTest = (function (opts) {
-    opts = opts || {pollute: true};
+    opts = opts || {pollute: false};
     var global = this;
     var assertion_cnt = 0;
 
@@ -15,7 +15,7 @@ var MiniTest = (function (opts) {
     // *****
     // Unit assertions and supporting code 
     // 
-    var unit = (function () {
+    var assertions = (function () {
         var message = function (msg, default_msg) {
             return function () {
                 if (msg !== undefined) {
@@ -101,12 +101,26 @@ var MiniTest = (function (opts) {
             },
 
             // This could be an evil/wrong way to implement this, I'm
-            // still not sure.
+            // still not sure. inherits_from() walks the prototype chain
+            // to see if cls is anywhere up the chain.
+            assert_inherits_from: function (cls, obj, msg) {
+                var proto = obj;
+                var thing;
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to be an inherit from " + cls;
+                });
+                while (proto = proto.__proto__) {
+                    if (proto === cls.prototype) thing = proto;
+                }
+                console.log(thing);
+                return this.assert(thing, msg);
+            },
+
             assert_instance_of: function (cls, obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be an instance of " + cls;
                 });
-                return this.assert(cls.prototype === obj.__proto__, msg);
+                return assert(cls.prototype === obj.__proto__, msg);
             },
 
             assert_match: function (exp, act, msg) {
@@ -144,12 +158,7 @@ var MiniTest = (function (opts) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to respond to " + meth;
                 });
-                try {
-                    obj[meth]();
-                } catch (e) {
-                    return this.assert(false, msg);
-                }
-                return this.assert(true, msg);
+                return this.assert(obj[meth] && (typeof obj[meth] === 'function'), msg);
             },
 
             assert_same: function (exp, act, msg) {
@@ -184,46 +193,143 @@ var MiniTest = (function (opts) {
                 msg = msg || "Failed refutation, no message given"
                 return ! this.assert(!test, msg); 
             },
+
             refute_empty: function (obj, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to not be empty"
+                });
+                //assert(obj.hasOwnProperty('length'));
+                this.assert_respond_to(obj, 'pop');
+                return this.refute(! (obj.pop()), msg);
             },
+
             refute_equal: function (exp, act, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + act + " to not be equal to " + exp;
+                });
+                return this.refute(exp == act, msg);
             },
+
             refute_in_delta: function (exp, act, delta, msg) {
-                msg = msg || undefined;
                 delta = delta || 0.001;
+                msg = message(msg, function () {
+                    return "Expected " + exp + " - " + act + " to not be < " + delta;
+                });
+                return this.refute(delta > n, msg);
             },
+
             refute_in_epsilon: function (a, b, epsilon, msg) {
-                msg = msg || undefined;
                 epsilon = epsilon || 0.001;
+                return this.refute_in_delta(a, b, (a * epsilon), msg);
             },
+
             refute_includes: function (collection, obj, msg) {
-                msg = msg || undefined;            
+                var thing, elm;
+                msg = message(msg, function () {
+                    return "Expected " + collection + " to not contain " + obj;
+                });
+                this.assert_respond_to(collection, 'pop');                
+                while (elm = collection.pop()) {
+                    if (elm === obj) {
+                        thing = elm;
+                        break;
+                    }
+                }
+                return this.refute(thing, msg);
             },
+
             refute_match: function (exp, act, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + exp + " to not match " + act;
+                });
+                this.assert_respond_to(act, "match");
+                if (typeof exp === 'string') {
+                    exp = new RegExp(exp);
+                }
+                return this.refute(sct.match(exp), msg);
             },
-            refute_nil: function (obj, msg) {
-                msg = msg || undefined;            
+
+            refute_null: function (obj, msg) {
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to not be null";
+                });
+                return this.refute(obj === null, msg);
             },
-            refute_operator: function (o1, op, o2, msg) {
-                msg = msg || undefined;            
-            },
+
             refute_respond_to: function (obj, meth, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to not respond to " + meth;
+                });
+                return this.refute(obj[meth] && (typeof obj[meth] === 'function'), msg);   
             },
+
             refute_same: function (exp, act, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + exp + " and " + act + " to not be the same";
+                });
+                return this.refute(exp === act, msg);
             },
+        };
+    })();
+
+    var unit = (function () {
+        var report, failures, errors, skips;
+        var test_count, assertion_count;
+        var start_time;
+        var test_cases = [];
+        var test_space = {};
+
+        // build a non-global sandbox where we can treat assertions as
+        // local
+        extend(test_space, assertions);
+        
+        var run_case = function (tc, randomize) {
+            var tests = [];
+            var prop, i;
+            randomize = randomize || true;
+
+            // gather up tests from tc. note: we're pulling all of the tests
+            // from tc's prototype chain as well. this seems good.
+            for (prop in tc) {
+                if (prop.match(/^test/) && typeof tc[prop] === 'function') {
+                    tests.push(tc[prop]);
+                }
+            }
+
+            // randomize the order of the tests
+            if (randomize) {
+                tests.sort(function () {return 0.5 - Math.random()});
+            }
+
+            // run the tests in the context of our sandbox
+            for (i = 0; i < tests.length; i++) {
+                tests[i].apply(test_space);
+            }
+        };
+
+        return {
+            test_cases: function () {return test_cases.slice()},
+            new_test_case: function (tc) {test_cases.push(tc)},
+            run: function () {
+                var i;
+                for (i = 0; i < test_cases.length; i++) {
+                    run_case(test_cases[i]);
+                }
+            }
         };
     })();
   
     if (opts['pollute']) {
-        extend(global, unit);
+        extend(global, assertions);
     }
 
-    return unit;
+    return {
+        Assertions: assertions,
+        Unit: unit,
+        pollute: function () {
+            extend(global, assertions)
+        }
+    };
 })();
 
 
