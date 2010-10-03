@@ -1,20 +1,30 @@
-
-
-var MiniTest = (function () {
-    // we're going to need this to pollute the namespace
+var MiniTest = (function (opts) {
+    opts = opts || {pollute: true};
     var global = this;
-    var assertions = 0;
+    var assertion_cnt = 0;
 
-    var unitAssersions = (function () {
-        var message = function (msg, default) {
+    var extend = function (into, obj) {
+        var attr;
+        for (attr in obj) {
+            if (obj.hasOwnProperty(attr) && typeof into[attr] !== 'function') {
+                into[attr] = obj[attr];
+            }
+        }
+    }
+
+    // *****
+    // Unit assertions and supporting code 
+    // 
+    var unit = (function () {
+        var message = function (msg, default_msg) {
             return function () {
                 if (msg !== undefined) {
                     if (msg === '') msg = msg + '.';
-                    msg = msg + '\n' + default();
+                    msg = msg + '\n' + default_msg();
                     // yes, i see the backtracking: patches welcome!
                     return msg.replace( /^\s+(.+)\s+$/, $1);
                 } else {
-                    return default() + '.';
+                    return default_msg() + '.';
                 }
             }
         };
@@ -22,7 +32,11 @@ var MiniTest = (function () {
         return {
             assert: function (test, msg) {
                 msg = msg || "Failed assertion, no message given";
-                assertions += 1;
+                assertion_cnt += 1;
+                if (typeof test === 'boolean') {
+                    test = function () { return test };
+                }
+
                 if (!test()) {
                     if (typeof msg === 'function') {
                         msg = msg();
@@ -33,56 +47,122 @@ var MiniTest = (function () {
             },
             
             assert_empty: function (obj, msg) {
-                msg = msg || undefined;
                 msg = message(msg, function() { 
                     return "Expected " + obj + " to be empty"
                 });
-                assert(obj.length === 0, msg);
+                return this.assert(obj.length === 0, msg);
             },
 
             assert_equal: function (exp, act, msg) {
-                msg = msg || undefined;
+                msg = message(msg, function() {
+                    return "Expected " + exp + " not " + act;
+                });
+                return this.assert(exp === act, msg);
             },
+
             assert_in_delta: function (exp, act, delta, msg) {
-                msg = msg || undefined;
                 delta = delta || 0.001;
+                msg = message(msg, function() {
+                    return "Expected " + exp + " - " + act + 
+                           " (" + n + ") " + "to be < " + delta;
+                });
+                var n  = Math.abs(exp - act);
+                return this.assert(delta >= n, msg);
             },
+
             assert_in_epsilon: function (a, b, epsilon, msg) {
-                msg = msg || undefined;
                 epsilon = epsilon || 0.001;
+                return this.assert_in_delta(a, b, Math.min(a, b) * epsilon, msg);
             },
+
             assert_includes: function (collection, obj, msg) {
-                msg = msg || undefined;            
+                var thing;
+                msg = message(msg, function () {
+                    return "Expected " + collection + " to include " + obj;
+                });
+                // this.assert_respond_to(collection, "slice");                
+                for (var elm in collection) {
+                    if (elm === obj) thing = elm;
+                }
+                return this.assert(elm, msg);
             },
+
+            // This could be an evil/wrong way to implement this, I'm
+            // still not sure.
             assert_instance_of: function (cls, obj, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to be an instance of " + cls;
+                });
+                return this.assert(cls === obj.__proto__, msg);
             },
+
             assert_match: function (exp, act, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + exp + " to match " + act;
+                });
+                this.assert_respond_to(act, "match");
+                if (typeof exp === 'string') {
+                    exp = new RegExp(exp);
+                }
+                return this.assert(act.match(exp), msg);
             },
-            assert_nil: function (obj, msg) {
-                msg = msg || undefined;
+
+            assert_null: function (obj, msg) {
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to be null";
+                });
+                return this.assert(obj === null, msg);
             },
-            assert_operator: function (o1, op, o2, msg) {
-                msg = msg || undefined;            
+
+            assert_raises: function (exp, code, msg) {
+                msg = message(msg, function () {
+                    return "Expected exception of type " + exp.name;
+                });
+
+                try {
+                    code();
+                } catch(e) {
+                    return assert(exp.name === e.name, msg);
+                }
+                return this.assert(false, msg);
             },
-            assert_output: function (stdout, stderr) {},
-            assert_raises: function (*exp) {},
+
             assert_respond_to: function (obj, meth, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + obj + " to respond to " + meth;
+                });
+                try {
+                    obj[meth]();
+                } catch (e) {
+                    return this.assert(false, msg);
+                }
+                return this.assert(true, msg);
             },
+
             assert_same: function (exp, act, msg) {
-                msg = msg || undefined;            
+                msg = message(msg, function () {
+                    return "Expected " + exp + " and " + act + " to be the same";
+                });
+                return this.assert(exp === act, msg);
             },
-            assert_send: function (send_ary, m) {},
-            assert_silent: function () {},
-            assert_throws: function (sym, msg) {
-                msg = msg || undefined;            
+
+            assert_throws: function (exp, code, msg) {
+                return this.assert_raises(exp, code, msg);
             },
-            
+
+            flunk: function (msg) {
+                msg = msg || "Epic Fail!";
+                return this.assert(false, msg);
+            },
+
+            pass: function () {
+                return this.assert(true);
+            },
+
             // refutations
             refute: function (test, msg) {
-                msg = msg || undefined;            
+                msg = msg || "Failed refutation, no message given"
+                return ! this.assert(!test, msg); 
             },
             refute_empty: function (obj, msg) {
                 msg = msg || undefined;            
@@ -119,11 +199,11 @@ var MiniTest = (function () {
         };
     })();
   
-    return unitAssertions;
-//    return {
-//        newUnit: function () {
-//        }
-//    };
+    if (opts['pollute']) {
+        extend(global, unit);
+    }
+
+    return unit;
 })();
 
 
