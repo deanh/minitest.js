@@ -20,13 +20,12 @@ tests = {
      test1: function () {this.assert(1 === 1, "equality of 1")},
      testNoMeansNo: function () {this.assert((0 + 2) == 1, "0 + 2 = 1?")},
      teardown: function () {teardownCount++}
-}
+};
 
 MiniTest.Unit.new_test_case(tests);
 MiniTest.Unit.run();
-</code>
-/***** Output *****
 
+/***** Output *****
 Starting tests...
 .
 .
@@ -34,8 +33,8 @@ Failures:
 undefined: undefined
 2 tests, 2 assertions, 1 failures, 0 errors.
 Run time: 2ms
-
  ***** Fin *****/
+</code>
 
 MiniTest::Assertions provides a rich palette of assertions and refutations from which you can craft your
 tests. See source for details.
