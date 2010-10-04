@@ -11,7 +11,6 @@ MiniTest::Unit by Ryan Davis.
 
 Forthcoming. For now you'll have to look at the source. Here's a start:
 
-<code>
     var setupCount = 0;
     var teardownCount = 0;
 
@@ -35,8 +34,6 @@ Forthcoming. For now you'll have to look at the source. Here's a start:
     2 tests, 2 assertions, 1 failures, 0 errors.
     Run time: 2ms
     ***** Fin *****/
-
-</code>
 
 MiniTest::Assertions provides a rich palette of assertions and refutations from which you can craft your
 tests. See source for details.
