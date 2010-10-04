@@ -61,8 +61,6 @@ var MiniTest = (function (opts) {
 
         
         return {
-            failure: Failure,
-
             // *****
             // * Assertions
             // *****
