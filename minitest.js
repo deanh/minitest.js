@@ -62,6 +62,8 @@ var MiniTest = (function (opts) {
             failure: Failure,
 
             // *****
+            // * Assertions
+            // *****
             // * Fails unless +test+ is a true value
             assert: function (test, msg) {
                 msg = msg || "Failed assertion, no message given";
@@ -129,7 +131,8 @@ var MiniTest = (function (opts) {
                 return this.assert_in_delta(a, b, Math.min(a, b) * epsilon, msg);
             },
 
-
+            // *****
+            // * Fails if +collection+ does not include +obj+
             assert_includes: function (collection, obj, msg) {
                 var thing, elm;
                 msg = message(msg, function () {
@@ -145,9 +148,8 @@ var MiniTest = (function (opts) {
                 return this.assert(thing, msg);
             },
 
-            // This could be an evil/wrong way to implement this, I'm
-            // still not sure. inherits_from() walks the prototype chain
-            // to see if cls is anywhere up the chain.
+            // *****
+            // * Fails if +obj+ does not have +cls+ in its prototype chain
             assert_inherits_from: function (cls, obj, msg) {
                 var proto = obj;
                 var thing;
@@ -161,6 +163,8 @@ var MiniTest = (function (opts) {
                 return this.assert(thing, msg);
             },
 
+            // *****
+            //* Fails if +obj+ does not have +cls+ as its direct prototype
             assert_instance_of: function (cls, obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be an instance of " + cls;
@@ -168,17 +172,21 @@ var MiniTest = (function (opts) {
                 return assert(cls.prototype === obj.__proto__, msg);
             },
 
-            assert_match: function (exp, act, msg) {
+            // *****
+            // * Fails if +str+ does not match +regexp+
+            assert_match: function (regexp, str, msg) {
                 msg = message(msg, function () {
-                    return "Expected " + exp + " to match " + act;
+                    return "Expected " + regexp + " to match " + str;
                 });
-                this.assert_respond_to(act, "match");
-                if (typeof exp === 'string') {
-                    exp = new RegExp(exp);
+                this.assert_respond_to(str, "match");
+                if (typeof regexp === 'string') {
+                    regexp = new RegExp(regexp);
                 }
-                return this.assert(act.match(exp), msg);
+                return this.assert(str.match(regexp), msg);
             },
 
+            // *****
+            // * Fails if +obj+ is not null
             assert_null: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be null";
@@ -186,6 +194,8 @@ var MiniTest = (function (opts) {
                 return this.assert(obj === null, msg);
             },
 
+            // *****
+            // * Fails unless +code+ raises an +exp+
             assert_raises: function (exp, code, msg) {
                 msg = message(msg, function () {
                     return "Expected exception of type " + exp.name;
@@ -199,6 +209,8 @@ var MiniTest = (function (opts) {
                 return this.assert(false, msg);
             },
 
+            // *****
+            // * Fails unless +obj+ responds to +meth+
             assert_respond_to: function (obj, meth, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to respond to " + meth;
@@ -206,6 +218,8 @@ var MiniTest = (function (opts) {
                 return this.assert(obj[meth] && (typeof obj[meth] === 'function'), msg);
             },
 
+            // *****
+            // * Fails unless +exp+ and +act+ refer to the same object
             assert_same: function (exp, act, msg) {
                 msg = message(msg, function () {
                     return "Expected " + exp + " and " + act + " to be the same";
@@ -213,10 +227,14 @@ var MiniTest = (function (opts) {
                 return this.assert(exp === act, msg);
             },
 
+            // *****
+            // * Fails unless +code+ throws an +exp+ syn for #assert_raises
             assert_throws: function (exp, code, msg) {
                 return this.assert_raises(exp, code, msg);
             },
 
+            // *****
+            // * Fails unless +obj+ is undefined
             assert_undefined: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be undefined";
@@ -224,21 +242,30 @@ var MiniTest = (function (opts) {
                 return this.assert(obj === undefined, msg);
             },
 
+            // *****
+            // * Fails with extreme prejudice 
             flunk: function (msg) {
                 msg = msg || "Epic Fail!";
                 return this.assert(false, msg);
             },
 
+            // *****
+            // * Today is your lucky day
             pass: function () {
                 return this.assert(true);
             },
 
-            // refutations
+            // *****
+            // * Refutations (refutations return false when they pass)
+            // *****
+            // * Fails if +test+ is truthy
             refute: function (test, msg) {
                 msg = msg || "Failed refutation, no message given"
                 return ! this.assert(!test, msg); 
             },
 
+            // *****
+            // * Fails if +obj+ is empty
             refute_empty: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not be empty"
@@ -249,6 +276,8 @@ var MiniTest = (function (opts) {
                 return this.refute(! (obj.pop()), msg);
             },
 
+            // *****
+            // * Fails if +exp+ == +act+
             refute_equal: function (exp, act, msg) {
                 msg = message(msg, function () {
                     return "Expected " + act + " to not be equal to " + exp;
@@ -256,6 +285,9 @@ var MiniTest = (function (opts) {
                 return this.refute(exp == act, msg);
             },
 
+            // *****
+            // * Fails if +exp+ is within +delta+ of +act+. For comparing
+            // * floats.
             refute_in_delta: function (exp, act, delta, msg) {
                 delta = delta || 0.001;
                 msg = message(msg, function () {
@@ -264,11 +296,16 @@ var MiniTest = (function (opts) {
                 return this.refute(delta > n, msg);
             },
 
+            // *****
+            // * I need to look into this. It strikes me as a narrow case of 
+            // * how delta and epsilon relate, but I know math and not CS
             refute_in_epsilon: function (a, b, epsilon, msg) {
                 epsilon = epsilon || 0.001;
                 return this.refute_in_delta(a, b, (a * epsilon), msg);
             },
 
+            // *****
+            // * Fails if +collection+ includes +obj+
             refute_includes: function (collection, obj, msg) {
                 var thing, elm;
                 msg = message(msg, function () {
@@ -284,17 +321,21 @@ var MiniTest = (function (opts) {
                 return this.refute(thing, msg);
             },
 
-            refute_match: function (exp, act, msg) {
+            // *****
+            // * Fails if +str+ matches +regexp+
+            refute_match: function (regexp, str, msg) {
                 msg = message(msg, function () {
-                    return "Expected " + exp + " to not match " + act;
+                    return "Expected " + regexp + " to not match " + act;
                 });
-                this.assert_respond_to(act, "match");
-                if (typeof exp === 'string') {
-                    exp = new RegExp(exp);
+                this.assert_respond_to(str, "match");
+                if (typeof regexp === 'string') {
+                    regexp = new RegExp(regexp);
                 }
-                return this.refute(sct.match(exp), msg);
+                return this.refute(str.match(regexp), msg);
             },
 
+            // *****
+            // * Fails if +obj+ is null
             refute_null: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not be null";
@@ -302,6 +343,8 @@ var MiniTest = (function (opts) {
                 return this.refute(obj === null, msg);
             },
 
+            // *****
+            // * Fails if +obj+ responds to +meth+
             refute_respond_to: function (obj, meth, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not respond to " + meth;
@@ -309,6 +352,8 @@ var MiniTest = (function (opts) {
                 return this.refute(obj[meth] && (typeof obj[meth] === 'function'), msg);   
             },
 
+            // *****
+            // * Fails if +exp+ === +act+
             refute_same: function (exp, act, msg) {
                 msg = message(msg, function () {
                     return "Expected " + exp + " and " + act + " to not be the same";
@@ -318,6 +363,8 @@ var MiniTest = (function (opts) {
         };
     })();
 
+    // *****
+    // * MiniTest.Unit
     var unit = (function () {
         var report, failures, errors, skips;
         var test_count, assertion_count;
@@ -334,6 +381,8 @@ var MiniTest = (function (opts) {
         // local
         extend(test_space, assertions);
         
+        // *****
+        // * Run a test case
         var run_case = function (tc, randomize) {
             var tests = [];
             var prop, i, fail, error;
@@ -393,11 +442,13 @@ var MiniTest = (function (opts) {
                        errors.length + " errors.");
         };
 
+        // the Unit object, fresh and world ready
         return {
             test_cases: function () {return test_cases.slice()},
             new_test_case: function (tc) {test_cases.push(tc)},
             run: function () {
                 var i;
+                assertion_cnt = 0;
 
                 output.log("Starting tests...");
                 output.time("Run time");
@@ -413,6 +464,8 @@ var MiniTest = (function (opts) {
         extend(global, assertions);
     }
 
+    // MiniTest module built out of most of the above and stuffed into the
+    // global namespace.
     return {
         Assertions: assertions,
         Unit: unit,
