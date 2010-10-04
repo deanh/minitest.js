@@ -1,3 +1,29 @@
+// MiniTest.js
+//
+// A small unit testing framework based on Ryan Davis' MiniTest::Unit
+//
+// Copyright (c) 2010 Harry Dean Hudson, <dean@ero.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+// *****
+// * Main module
 var MiniTest = (function (opts) {
     opts = opts || {pollute: false};
     var global = this;
@@ -12,9 +38,11 @@ var MiniTest = (function (opts) {
         }
     }
 
+    function Failure (msg) {};
+    Failure.prototype = Error;
+
     // *****
-    // Unit assertions and supporting code 
-    // 
+    // * Unit assertions and supporting code 
     var assertions = (function () {
         var message = function (msg, default_msg) {
             return function () {
@@ -29,7 +57,12 @@ var MiniTest = (function (opts) {
             }
         };
 
+        
         return {
+            failure: Failure,
+
+            // *****
+            // * Fails unless +test+ is a true value
             assert: function (test, msg) {
                 msg = msg || "Failed assertion, no message given";
                 assertion_cnt += 1;
@@ -43,11 +76,14 @@ var MiniTest = (function (opts) {
                     if (typeof msg === 'function') {
                         msg = msg();
                     }
-                    throw new Error(msg);
+                    throw new Failure(msg);
                 }
                 return true;
             },
             
+            // *****
+            // * Fails if +obj+ has no properties of its own. This includes
+            // * empty Arrays (most common case)
             assert_empty: function (obj, msg) {
                 var my_props = []
                 var prop;
@@ -61,6 +97,8 @@ var MiniTest = (function (opts) {
                 return this.assert(my_props.length === 0, msg);
             },
 
+            // *****
+            // * Fails unless +exp+ and +act+ satisfy looser == equality test
             assert_equal: function (exp, act, msg) {
                 msg = message(msg, function() {
                     return "Expected " + exp + " not " + act;
@@ -68,6 +106,9 @@ var MiniTest = (function (opts) {
                 return this.assert(exp == act, msg);
             },
 
+            // *****
+            // * For comparing floats. Fails untils +act+ is within +delta+
+            // * of +exp+
             assert_in_delta: function (exp, act, delta, msg) {
                 delta = delta || 0.001;
                 console.log(delta);
@@ -80,10 +121,14 @@ var MiniTest = (function (opts) {
                 return this.assert(delta >= n, msg);
             },
 
+            // *****
+            // * Epsilon test for floats. For use in proving the mean value
+            // * theorem
             assert_in_epsilon: function (a, b, epsilon, msg) {
                 epsilon = epsilon || 0.001;
                 return this.assert_in_delta(a, b, Math.min(a, b) * epsilon, msg);
             },
+
 
             assert_includes: function (collection, obj, msg) {
                 var thing, elm;
@@ -198,7 +243,8 @@ var MiniTest = (function (opts) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not be empty"
                 });
-                //assert(obj.hasOwnProperty('length'));
+                // this could alternately be (not sure which is better):
+                // assert(obj.hasOwnProperty('length'));
                 this.assert_respond_to(obj, 'pop');
                 return this.refute(! (obj.pop()), msg);
             },
@@ -278,6 +324,11 @@ var MiniTest = (function (opts) {
         var start_time;
         var test_cases = [];
         var test_space = {};
+        var output = console || {
+            log: function (msg) {
+                throw {name: "Ouch", message: "unsupported output for: " + msg}
+            }
+        };
 
         // build a non-global sandbox where we can treat assertions as
         // local
@@ -285,7 +336,8 @@ var MiniTest = (function (opts) {
         
         var run_case = function (tc, randomize) {
             var tests = [];
-            var prop, i;
+            var prop, i, fail, error;
+            var failures = [], errors = [];
             randomize = randomize || true;
 
             // gather up tests from tc. note: we're pulling all of the tests
@@ -303,8 +355,42 @@ var MiniTest = (function (opts) {
 
             // run the tests in the context of our sandbox
             for (i = 0; i < tests.length; i++) {
-                tests[i].apply(test_space);
+                if (tc['setup'] && typeof tc['setup'] === 'function') {
+                    tc.setup();
+                }
+                output.log('.');
+                try {
+                    tests[i].apply(test_space);
+                } catch (e) {
+                    if (e instanceof Failure) {
+                        failures.push(e);
+                    } else {
+                        errors.push(e);
+                    }
+                }
+                if (tc['teardown'] && typeof tc['teardown'] === 'function') {
+                    tc.teardown();
+                }
             }
+
+            if (failures.length > 0) {
+                output.log("Failures:");
+                for (fail in failures) {
+                    output.log(fail.name + ": " + fail.message);
+                }
+            }
+
+            if (errors.length > 0) {
+                output.log("Errors:");
+                for (error in errors) {
+                    output.log(error.name + ": " + error.message);
+                }
+            }
+
+            output.log(tests.length + " tests, " + 
+                       assertion_cnt +  " assertions, " + 
+                       failures.length + " failures, " + 
+                       errors.length + " errors.");
         };
 
         return {
@@ -312,6 +398,8 @@ var MiniTest = (function (opts) {
             new_test_case: function (tc) {test_cases.push(tc)},
             run: function () {
                 var i;
+
+                output.log("Starting tests...");
                 for (i = 0; i < test_cases.length; i++) {
                     run_case(test_cases[i]);
                 }
