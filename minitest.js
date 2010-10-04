@@ -400,9 +400,11 @@ var MiniTest = (function (opts) {
                 var i;
 
                 output.log("Starting tests...");
+                output.time("Run time");
                 for (i = 0; i < test_cases.length; i++) {
                     run_case(test_cases[i]);
                 }
+                output.timeEnd("Run time");
             }
         };
     })();
