@@ -11,6 +11,7 @@ MiniTest::Unit by Ryan Davis.
 
 Forthcoming. For now you'll have to look at the source. Here's a start:
 
+<code>
 var setupCount = 0;
 var teardownCount = 0;
 
@@ -23,7 +24,7 @@ tests = {
 
 MiniTest.Unit.new_test_case(tests);
 MiniTest.Unit.run();
-
+</code>
 /***** Output *****
 
 Starting tests...
