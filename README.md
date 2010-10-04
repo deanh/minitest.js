@@ -12,36 +12,29 @@ MiniTest::Unit by Ryan Davis.
 Forthcoming. For now you'll have to look at the source. Here's a start:
 
 <code>
-var setupCount = 0;
-var teardownCount = 0;
+    var setupCount = 0;
+    var teardownCount = 0;
 
-tests = {
-     setup: function () {setupCount++},
-     test1: function () {this.assert(1 === 1, "equality of 1")},
-     testNoMeansNo: function () {this.assert((0 + 2) == 1, "0 + 2 = 1?")},
-     teardown: function () {teardownCount++}
-};
+    tests = {
+         setup: function () {setupCount++},
+         test1: function () {this.assert(1 === 1, "equality of 1")},
+         testNoMeansNo: function () {this.assert((0 + 2) == 1, "0 + 2 = 1?")},
+         teardown: function () {teardownCount++}
+    };
 
-MiniTest.Unit.new_test_case(tests);
-MiniTest.Unit.run();
+    MiniTest.Unit.new_test_case(tests);
+    MiniTest.Unit.run();
 
-/***** Output *****
+    /***** Output *****
 
-Starting tests...
-
-.
-
-.
-
-Failures:
-
-undefined: undefined
-
-2 tests, 2 assertions, 1 failures, 0 errors.
-
-Run time: 2ms
-
- ***** Fin *****/
+    Starting tests...
+    .
+    .
+    Failures:
+    undefined: undefined
+    2 tests, 2 assertions, 1 failures, 0 errors.
+    Run time: 2ms
+    ***** Fin *****/
 
 </code>
 
