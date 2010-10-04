@@ -26,14 +26,23 @@ MiniTest.Unit.new_test_case(tests);
 MiniTest.Unit.run();
 
 /***** Output *****
+
 Starting tests...
+
 .
+
 .
+
 Failures:
+
 undefined: undefined
+
 2 tests, 2 assertions, 1 failures, 0 errors.
+
 Run time: 2ms
+
  ***** Fin *****/
+
 </code>
 
 MiniTest::Assertions provides a rich palette of assertions and refutations from which you can craft your
