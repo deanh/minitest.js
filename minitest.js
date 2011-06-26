@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2010 Harry Dean Hudson Jr., <dean@ero.com>
 //
-// Much thanks to Ryan and Seattle.rb
+// Much thanks to the original work of Ryan Davis and Seattle.rb
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
