@@ -475,4 +475,7 @@ var MiniTest = (function (opts) {
     };
 })();
 
-
+// for node
+if (typeof exports === 'object') {
+  exports.MiniTest = MiniTest;
+}
