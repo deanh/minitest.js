@@ -35,7 +35,7 @@ Forthcoming. For now you'll have to look at the source. Here's a start:
     Run time: 2ms
     ***** Fin *****/
 
-MiniTest::Assertions provides a rich palette of assertions and refutations from which you can craft your
+MiniTest::Assertions provides a rich palette of assertions and refutations for crafting unit
 tests. See source for details.
 
 ## LICENSE ##
