@@ -1,0 +1,12 @@
+{ 
+    "name": "minitest",
+    "description": "A port of Ruby's MiniTest::Unit",
+    "version": "0.1.2",
+    "url": "https://github.com/deanh/minitest.js",
+    "author": "H. Dean Hudson <dean@ero.com>",
+    "main": "minitest.js",
+    "repository": {
+        "type" : "git",
+        "url" : "http://github.com/deanh/minitest.js.git"
+    }
+}

@@ -215,7 +215,8 @@ var MiniTest = (function (opts) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to respond to " + meth;
                 });
-                return this.assert(obj[meth] && (typeof obj[meth] === 'function'), msg);
+                return this.assert(obj[meth] && 
+                        (typeof obj[meth] === 'function'), msg);
             },
 
             // *****
