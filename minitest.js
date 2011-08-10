@@ -408,7 +408,8 @@ var MiniTest = (function (opts) {
                 if (tc['setup'] && typeof tc['setup'] === 'function') {
                     tc.setup();
                 }
-                output.log('.');
+                if (process !== undefined)
+                    process.stdout.write(".");
                 try {
                     tests[i].apply(test_space);
                 } catch (e) {
