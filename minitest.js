@@ -26,7 +26,9 @@
 
 // *****
 // * Main module
+
 var MiniTest = (function (opts) {
+    var VERSION = '0.1.4';
     opts = opts || {pollute: false};
     var global = this;
     var assertion_cnt = 0;
@@ -47,12 +49,14 @@ var MiniTest = (function (opts) {
     // * Unit assertions and supporting code 
     var assertions = (function () {
         var message = function (msg, default_msg) {
+            var str;
             return function () {
                 if (msg !== undefined) {
-                    if (msg === '') msg = msg + '.';
-                    msg = msg + '\n' + default_msg();
-                    // yes, i see the backtracking: patches welcome!
-                    return msg.replace( /^\s+(.+)\s+$/, $1);
+                    if (msg !== '')
+                        msg = msg + '.';
+                    msg = msg + "\n" + default_msg();
+                    str = msg.replace(/^\s*/, '');
+                    return str.replace(/\s*$/, '');
                 } else {
                     return default_msg() + '.';
                 }
@@ -78,7 +82,10 @@ var MiniTest = (function (opts) {
                     if (typeof msg === 'function') {
                         msg = msg();
                     }
-                    throw new Failure(msg);
+                    
+                    var f = new Failure();
+                    f.message = msg;
+                    throw f;
                 }
                 return true;
             },
@@ -393,7 +400,9 @@ var MiniTest = (function (opts) {
             // gather up tests from tc. note: we're pulling all of the tests
             // from tc's prototype chain as well. this seems good.
             for (prop in tc) {
+                //console.log(prop);
                 if (prop.match(/^test/) && typeof tc[prop] === 'function') {
+                    tc[prop].__name__ = prop;
                     tests.push(tc[prop]);
                 }
             }
@@ -413,6 +422,7 @@ var MiniTest = (function (opts) {
                 try {
                     tests[i].apply(test_space);
                 } catch (e) {
+                    e.test = tests[i];
                     if (e instanceof Failure) {
                         failures.push(e);
                     } else {
@@ -424,18 +434,25 @@ var MiniTest = (function (opts) {
                 }
             }
 
+            if (process !== undefined)
+                    process.stdout.write("\n");
+
+            output.log();
+
             if (failures.length > 0) {
                 output.log("Failures:");
-                for (fail in failures) {
-                    output.log(fail.name + ": " + fail.message);
+                for (var i = 0; i < failures.length; i++) {
+                    output.log(failures[i].test.__name__ + ": " + failures[i].message);
                 }
+                output.log();
             }
 
             if (errors.length > 0) {
                 output.log("Errors:");
-                for (error in errors) {
-                    output.log(error.name + ": " + error.message);
+                for (var i = 0; i < errors.length; i++) {
+                    output.link(errors[i].type + ": " + errors[i].message);
                 }
+                output.log();
             }
 
             output.log(tests.length + " tests, " + 

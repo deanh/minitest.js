@@ -27,10 +27,11 @@ Forthcoming. For now you'll have to look at the source. Here's a start:
     /***** Output *****
 
     Starting tests...
-    .
-    .
+    ..
+
     Failures:
-    undefined: undefined
+    testNoMeansNo: 0 + 2 = 1?
+
     2 tests, 2 assertions, 1 failures, 0 errors.
     Run time: 2ms
     ***** Fin *****/
