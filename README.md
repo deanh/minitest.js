@@ -11,6 +11,45 @@ MiniTest::Unit by Ryan Davis.
 
 Forthcoming. For now you'll have to look at the source. Here's a start:
 
+    // in node land, you have test files that look something like this:
+    // runner.js
+    #!/usr/bin/env node
+
+    var sys = require('sys'),
+        fs = require('fs'),
+        zombie = require('zombie'), // if you want to get headless
+        MiniTest = require('minitest').MiniTest;
+
+    var files = process.argv.slice(2,process.argv.length);
+    var i = 0;
+
+    for(i = 0; i < files.length; i++) {
+        MiniTest.Unit.new_test_case(
+            require(process.cwd() + "/" + files[i]).test(zombie));
+    }
+
+    MiniTest.Unit.run();
+
+    // elsewhere...
+    // test_foo.js
+    exports.test = (function (zombie) {
+        var setupCount = 0;
+        var teardownCount = 0;
+
+        return {
+            setup: function () {setupCount++},
+            test1: function () {this.assert(1 === 1, "equality of 1")},
+            testSetupTeardown: function () {
+                this.assert_equal(setupCount, 1);
+                this.assert_equal(teardownCount, 0);
+            },
+            testNoMeansNo: function () {this.assert((0 + 2) == 1, "0 + 2 = 1?")},
+            teardown: function () {teardownCount++}
+        }
+    })
+
+    // in a browser, it's more like such:
+
     var setupCount = 0;
     var teardownCount = 0;
 
@@ -25,6 +64,7 @@ Forthcoming. For now you'll have to look at the source. Here's a start:
     MiniTest.Unit.run();
 
     /***** Output *****
+    // from the browser
 
     Starting tests...
     ..
