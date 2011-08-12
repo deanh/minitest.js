@@ -11,7 +11,7 @@ MiniTest::Unit by Ryan Davis.
 
 Forthcoming. For now you'll have to look at the source. Here's a start:
 
-    // in node land, you have test files that look something like this:
+    // in node land, you have need a runner that looks something like this:
     // runner.js
     #!/usr/bin/env node
 
@@ -30,7 +30,7 @@ Forthcoming. For now you'll have to look at the source. Here's a start:
 
     MiniTest.Unit.run();
 
-    // elsewhere...
+    // elsewhere, test files...
     // test_foo.js
     exports.test = (function (zombie) {
         var setupCount = 0;
