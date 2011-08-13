@@ -11,13 +11,18 @@ lots of assertions and randomizes test sequence.
 ## CHANGELOG ##
 
 0.2.0:
+
 * Proper stack traces for errors
+
 * Fs and Es for failures and errors as the tests run
+
 * Optional stack traces for failures (via a constant flag)
+
 * CamelCase everything. This breaks the API, but it was weird, needed to be done sooner,
   and should be easy to fix
 
 0.1.4:
+
 * Fixed basic messaging bugs
 
 ## Synopsis ##
