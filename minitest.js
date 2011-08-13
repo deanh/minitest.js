@@ -28,10 +28,11 @@
 // * Main module
 
 var MiniTest = (function (opts) {
-    var VERSION = '0.1.4';
+    var VERSION = '0.2.0';
+    var TRACE_FAIL = false;
     opts = opts || {pollute: false};
     var global = this;
-    var assertion_cnt = 0;
+    var assertionCnt = 0;
 
     var extend = function (into, obj) {
         var attr;
@@ -42,23 +43,20 @@ var MiniTest = (function (opts) {
         }
     }
 
-    function Failure (msg) {};
-    Failure.prototype = Error;
-
     // *****
     // * Unit assertions and supporting code 
     var assertions = (function () {
-        var message = function (msg, default_msg) {
+        var message = function (msg, defaultMsg) {
             var str;
             return function () {
                 if (msg !== undefined) {
                     if (msg !== '')
                         msg = msg + '.';
-                    msg = msg + "\n" + default_msg();
+                    msg = msg + "\n" + defaultMsg();
                     str = msg.replace(/^\s*/, '');
                     return str.replace(/\s*$/, '');
                 } else {
-                    return default_msg() + '.';
+                    return defaultMsg() + '.';
                 }
             }
         };
@@ -71,11 +69,11 @@ var MiniTest = (function (opts) {
             // * Fails unless +test+ is a true value
             assert: function (test, msg) {
                 msg = msg || "Failed assertion, no message given";
-                assertion_cnt += 1;
+                assertionCnt += 1;
 
                 if (typeof test !== 'function') {
-                    var old_test_val = test;
-                    test = function () { return old_test_val };
+                    var oldTestVal = test;
+                    test = function () { return oldTestVal };
                 }
 
                 if (!test()) {
@@ -83,8 +81,9 @@ var MiniTest = (function (opts) {
                         msg = msg();
                     }
                     
-                    var f = new Failure();
-                    f.message = msg;
+                    var f = new Error(msg);
+                    f.type = 'failure';
+                    f.name = 'FailedAssertion';
                     throw f;
                 }
                 return true;
@@ -93,22 +92,22 @@ var MiniTest = (function (opts) {
             // *****
             // * Fails if +obj+ has no properties of its own. This includes
             // * empty Arrays (most common case)
-            assert_empty: function (obj, msg) {
-                var my_props = []
+            assertEmpty: function (obj, msg) {
+                var myProps = []
                 var prop;
                 msg = message(msg, function() { 
                     return "Expected " + obj + " to be empty"
                 });
 
                 for (prop in obj) {
-                    if (obj.hasOwnProperty(prop)) my_props.push(prop);
+                    if (obj.hasOwnProperty(prop)) myProps.push(prop);
                 }
-                return this.assert(my_props.length === 0, msg);
+                return this.assert(myProps.length === 0, msg);
             },
 
             // *****
             // * Fails unless +exp+ and +act+ satisfy looser == equality test
-            assert_equal: function (exp, act, msg) {
+            assertEqual: function (exp, act, msg) {
                 msg = message(msg, function() {
                     return "Expected " + exp + " not " + act;
                 });
@@ -118,7 +117,7 @@ var MiniTest = (function (opts) {
             // *****
             // * For comparing floats. Fails untils +act+ is within +delta+
             // * of +exp+
-            assert_in_delta: function (exp, act, delta, msg) {
+            assertInDelta: function (exp, act, delta, msg) {
                 delta = delta || 0.001;
                 console.log(delta);
                 msg = message(msg, function() {
@@ -133,19 +132,19 @@ var MiniTest = (function (opts) {
             // *****
             // * Epsilon test for floats. For use in proving the mean value
             // * theorem
-            assert_in_epsilon: function (a, b, epsilon, msg) {
+            assertInEpsilon: function (a, b, epsilon, msg) {
                 epsilon = epsilon || 0.001;
-                return this.assert_in_delta(a, b, Math.min(a, b) * epsilon, msg);
+                return this.assertInDelta(a, b, Math.min(a, b) * epsilon, msg);
             },
 
             // *****
             // * Fails if +collection+ does not include +obj+
-            assert_includes: function (collection, obj, msg) {
+            assertIncludes: function (collection, obj, msg) {
                 var thing, elm;
                 msg = message(msg, function () {
                     return "Expected " + collection + " to include " + obj;
                 });
-                this.assert_respond_to(collection, 'pop');                
+                this.assertRspondTo(collection, 'pop');                
                 while (elm = collection.pop()) {
                     if (elm === obj) {
                         thing = elm;
@@ -157,7 +156,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +obj+ does not have +cls+ in its prototype chain
-            assert_inherits_from: function (cls, obj, msg) {
+            assertInheritsFrom: function (cls, obj, msg) {
                 var proto = obj;
                 var thing;
                 msg = message(msg, function () {
@@ -172,7 +171,7 @@ var MiniTest = (function (opts) {
 
             // *****
             //* Fails if +obj+ does not have +cls+ as its direct prototype
-            assert_instance_of: function (cls, obj, msg) {
+            assertInstanceOf: function (cls, obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be an instance of " + cls;
                 });
@@ -181,11 +180,11 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +str+ does not match +regexp+
-            assert_match: function (regexp, str, msg) {
+            assertMatch: function (regexp, str, msg) {
                 msg = message(msg, function () {
                     return "Expected " + regexp + " to match " + str;
                 });
-                this.assert_respond_to(str, "match");
+                this.assertRespondTo(str, "match");
                 if (typeof regexp === 'string') {
                     regexp = new RegExp(regexp);
                 }
@@ -194,7 +193,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +obj+ is not null
-            assert_null: function (obj, msg) {
+            assertNull: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be null";
                 });
@@ -203,7 +202,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails unless +code+ raises an +exp+
-            assert_raises: function (exp, code, msg) {
+            assertRaises: function (exp, code, msg) {
                 msg = message(msg, function () {
                     return "Expected exception of type " + exp.name;
                 });
@@ -218,7 +217,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails unless +obj+ responds to +meth+
-            assert_respond_to: function (obj, meth, msg) {
+            assertRespondTo: function (obj, meth, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to respond to " + meth;
                 });
@@ -228,7 +227,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails unless +exp+ and +act+ refer to the same object
-            assert_same: function (exp, act, msg) {
+            assertSame: function (exp, act, msg) {
                 msg = message(msg, function () {
                     return "Expected " + exp + " and " + act + " to be the same";
                 });
@@ -236,14 +235,14 @@ var MiniTest = (function (opts) {
             },
 
             // *****
-            // * Fails unless +code+ throws an +exp+ syn for #assert_raises
-            assert_throws: function (exp, code, msg) {
-                return this.assert_raises(exp, code, msg);
+            // * Fails unless +code+ throws an +exp+ syn for #assertRaises
+            assertThrows: function (exp, code, msg) {
+                return this.assertRaises(exp, code, msg);
             },
 
             // *****
             // * Fails unless +obj+ is undefined
-            assert_undefined: function (obj, msg) {
+            assertUndefined: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to be undefined";
                 });
@@ -274,19 +273,19 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +obj+ is empty
-            refute_empty: function (obj, msg) {
+            refuteEmpty: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not be empty"
                 });
                 // this could alternately be (not sure which is better):
                 // assert(obj.hasOwnProperty('length'));
-                this.assert_respond_to(obj, 'pop');
+                this.assertRespondTo(obj, 'pop');
                 return this.refute(! (obj.pop()), msg);
             },
 
             // *****
             // * Fails if +exp+ == +act+
-            refute_equal: function (exp, act, msg) {
+            refuteEqual: function (exp, act, msg) {
                 msg = message(msg, function () {
                     return "Expected " + act + " to not be equal to " + exp;
                 });
@@ -296,7 +295,7 @@ var MiniTest = (function (opts) {
             // *****
             // * Fails if +exp+ is within +delta+ of +act+. For comparing
             // * floats.
-            refute_in_delta: function (exp, act, delta, msg) {
+            refuteInDelta: function (exp, act, delta, msg) {
                 delta = delta || 0.001;
                 msg = message(msg, function () {
                     return "Expected " + exp + " - " + act + " to not be < " + delta;
@@ -307,19 +306,19 @@ var MiniTest = (function (opts) {
             // *****
             // * I need to look into this. It strikes me as a narrow case of 
             // * how delta and epsilon relate, but I know math and not CS
-            refute_in_epsilon: function (a, b, epsilon, msg) {
+            refuteInEpsilon: function (a, b, epsilon, msg) {
                 epsilon = epsilon || 0.001;
-                return this.refute_in_delta(a, b, (a * epsilon), msg);
+                return this.refuteInDelta(a, b, (a * epsilon), msg);
             },
 
             // *****
             // * Fails if +collection+ includes +obj+
-            refute_includes: function (collection, obj, msg) {
+            refuteIncludes: function (collection, obj, msg) {
                 var thing, elm;
                 msg = message(msg, function () {
                     return "Expected " + collection + " to not contain " + obj;
                 });
-                this.assert_respond_to(collection, 'pop');                
+                this.assertRespondTo(collection, 'pop');                
                 while (elm = collection.pop()) {
                     if (elm === obj) {
                         thing = elm;
@@ -331,11 +330,11 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +str+ matches +regexp+
-            refute_match: function (regexp, str, msg) {
+            refuteMatch: function (regexp, str, msg) {
                 msg = message(msg, function () {
                     return "Expected " + regexp + " to not match " + act;
                 });
-                this.assert_respond_to(str, "match");
+                this.assertRespondTo(str, "match");
                 if (typeof regexp === 'string') {
                     regexp = new RegExp(regexp);
                 }
@@ -344,7 +343,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +obj+ is null
-            refute_null: function (obj, msg) {
+            refuteNull: function (obj, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not be null";
                 });
@@ -353,7 +352,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +obj+ responds to +meth+
-            refute_respond_to: function (obj, meth, msg) {
+            refuteRespondTo: function (obj, meth, msg) {
                 msg = message(msg, function () {
                     return "Expected " + obj + " to not respond to " + meth;
                 });
@@ -362,7 +361,7 @@ var MiniTest = (function (opts) {
 
             // *****
             // * Fails if +exp+ === +act+
-            refute_same: function (exp, act, msg) {
+            refuteSame: function (exp, act, msg) {
                 msg = message(msg, function () {
                     return "Expected " + exp + " and " + act + " to not be the same";
                 });
@@ -375,10 +374,10 @@ var MiniTest = (function (opts) {
     // * MiniTest.Unit
     var unit = (function () {
         var report, failures, errors, skips;
-        var test_count, assertion_count;
-        var start_time;
-        var test_cases = [];
-        var test_space = {};
+        var testCount, assertionCount;
+        var startTime;
+        var testCases = [];
+        var testSpace = {};
         var output = console || {
             log: function (msg) {
                 throw {name: "Ouch", message: "unsupported output for: " + msg}
@@ -387,14 +386,27 @@ var MiniTest = (function (opts) {
 
         // build a non-global sandbox where we can treat assertions as
         // local
-        extend(test_space, assertions);
+        extend(testSpace, assertions);
         
         // *****
         // * Run a test case
-        var run_case = function (tc, randomize) {
+        var runCase = function (tc, randomize) {
             var tests = [];
             var prop, i, fail, error;
             var failures = [], errors = [];
+            var writer;
+            var resultChar = '.';
+
+            // i haven't figured out a good way to do this in the browser
+            if (process !== undefined) {
+                writer = function (c) {process.stdout.write(c)};
+                writer.flush = function () {process.stdout.write("\n");}
+            } else {
+                var outStr = "";
+                writer = function(c) {outStr = outStr + c;}
+                writer.flush = function () {console.log(outStr);}
+            }
+
             randomize = randomize || true;
 
             // gather up tests from tc. note: we're pulling all of the tests
@@ -414,35 +426,37 @@ var MiniTest = (function (opts) {
 
             // run the tests in the context of our sandbox
             for (i = 0; i < tests.length; i++) {
+                resultChar = '.';
                 if (tc['setup'] && typeof tc['setup'] === 'function') {
                     tc.setup();
                 }
-                if (process !== undefined)
-                    process.stdout.write(".");
                 try {
-                    tests[i].apply(test_space);
+                    tests[i].apply(testSpace);
                 } catch (e) {
                     e.test = tests[i];
-                    if (e instanceof Failure) {
+                    if (e.type === 'failure') {
                         failures.push(e);
+                        resultChar = 'F';
                     } else {
                         errors.push(e);
+                        resultChar = 'E';
                     }
                 }
                 if (tc['teardown'] && typeof tc['teardown'] === 'function') {
                     tc.teardown();
                 }
+                writer(resultChar);
             }
 
-            if (process !== undefined)
-                    process.stdout.write("\n");
-
+            writer.flush();
             output.log();
 
             if (failures.length > 0) {
                 output.log("Failures:");
                 for (var i = 0; i < failures.length; i++) {
                     output.log(failures[i].test.__name__ + ": " + failures[i].message);
+                    if (TRACE_FAIL)
+                        output.log(failures[i].stack);
                 }
                 output.log();
             }
@@ -450,29 +464,30 @@ var MiniTest = (function (opts) {
             if (errors.length > 0) {
                 output.log("Errors:");
                 for (var i = 0; i < errors.length; i++) {
-                    output.link(errors[i].type + ": " + errors[i].message);
+                    output.log(errors[i].type + ": " + errors[i].message);
+                    output.log(errors[i].stack);
                 }
                 output.log();
             }
 
             output.log(tests.length + " tests, " + 
-                       assertion_cnt +  " assertions, " + 
+                       assertionCnt +  " assertions, " + 
                        failures.length + " failures, " + 
                        errors.length + " errors.");
         };
 
         // the Unit object, fresh and world ready
         return {
-            test_cases: function () {return test_cases.slice()},
-            new_test_case: function (tc) {test_cases.push(tc)},
+            testCases: function () {return testCases.slice()},
+            newTestCase: function (tc) {testCases.push(tc)},
             run: function () {
                 var i;
-                assertion_cnt = 0;
+                assertionCnt = 0;
 
-                output.log("Starting tests...");
+                output.log("Starting tests...\n");
                 output.time("Run time");
-                for (i = 0; i < test_cases.length; i++) {
-                    run_case(test_cases[i]);
+                for (i = 0; i < testCases.length; i++) {
+                    runCase(testCases[i]);
                 }
                 output.timeEnd("Run time");
             }
