@@ -33,7 +33,7 @@ Forthcoming. For now you'll have to look at the source. Here's a start:
     // runner.js
     #!/usr/bin/env node
 
-    var sys = require('sys'),
+    var util = require('util'),
         fs = require('fs'),
         zombie = require('zombie'), // if you want to get headless
         MiniTest = require('minitest').MiniTest;
